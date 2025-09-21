@@ -1,7 +1,16 @@
 import React from 'react'
+import { Button } from './ui/button';
 
 const ItemCard = ({ item, onEdit, onDelete }) => {
-  const { _id, title, type, tags = [], content, url, filePath } = item
+  const { _id, title, type, tags = [], content, url, fileUrl } = item;
+
+  // Extract filename from fileUrl
+  const getFilename = (fileUrl) => {
+    if (!fileUrl) return '';
+    const parts = fileUrl.split('/');
+    return parts[parts.length - 1] || '';
+  };
+
 
   const toAbsolute = (value) => {
     if (!value) return '#'
@@ -28,12 +37,24 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
       )
     }
     if (type === 'document') {
-      return (
-        <a href={toAbsolute(filePath)} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all mt-1 inline-block">
-          {filePath}
-        </a>
-      )
+      return fileUrl ? (
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-sm text-gray-600">{getFilename(fileUrl)}</span>
+          <a
+            href={toAbsolute(fileUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            View 
+          </a>
+        </div>
+      ) : (
+        <p className="text-sm text-red-500 mt-1">No file uploaded</p>
+      );
     }
+    
+    
     return null
   }
 
@@ -41,19 +62,20 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
     <div className="border rounded-lg p-4 bg-white shadow-sm flex flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{type}</span>
+          <h3 className="text-lg m-2 font-semibold text-gray-900">{title}</h3>
+          {/* <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-red-700">{type}</span> */}
+         <Button variant="outline">{type}</Button>
         </div>
         <div className="flex gap-2">
           <button onClick={() => onEdit(item)} className="text-xs px-3 py-1 rounded border hover:bg-gray-50">Edit</button>
-          <button onClick={() => onDelete(_id)} className="text-xs px-3 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50">Delete</button>
+          <Button onClick={() => onDelete(_id)} variant="destructive">Delete</Button>
         </div>
       </div>
       {renderBody()}
       {tags && tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1">
           {tags.map((t, i) => (
-            <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-700">{t}</span>
+            <span key={i} className="btn btn-soft btn-info">{t}</span>
           ))}
         </div>
       )}

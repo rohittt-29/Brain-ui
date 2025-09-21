@@ -2,14 +2,28 @@ import React from 'react'
 import { Button } from './ui/button'
 import { useNavigate } from 'react-router-dom';
 
-const Sidebar = () => {
+const Sidebar = ({ availableTypes = [], activeFilter, onFilterChange }) => {
   const navigate = useNavigate();
+  
   const handleLogout = () =>{
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
-
   }
+
+  // Type labels mapping
+  const typeLabels = {
+    'note': 'Notes',
+    'link': 'Links', 
+    'document': 'Documents',
+    'video': 'Videos'
+  };
+
+  const handleFilterClick = (type) => {
+    if (onFilterChange) {
+      onFilterChange(type);
+    }
+  };
   return (
     <div>
       <div className="drawer p-4">
@@ -26,8 +40,43 @@ const Sidebar = () => {
     <ul className="menu bg-base-200 text-base-content min-h-full w-80 p-4  flex flex-col justify-between">
       {/* Sidebar content here */}
       <div>
-      <li><a>Sidebar Item 1</a></li>
-      <li><a>Sidebar Item 2</a></li>
+        <li className="menu-title">
+          <span>Filter by Type</span>
+        </li>
+        
+        {/* Show All Items */}
+        <li>
+          <a 
+            className={!activeFilter ? 'active' : ''}
+            onClick={() => handleFilterClick(null)}
+          >
+            📋 All Items
+          </a>
+        </li>
+        
+        {/* Dynamic Type Filters */}
+        {availableTypes.map(({ type, count }) => (
+          <li key={type}>
+            <a 
+              className={activeFilter === type ? 'active' : ''}
+              onClick={() => handleFilterClick(type)}
+            >
+              {type === 'note' && '📝'}
+              {type === 'link' && '🔗'}
+              {type === 'document' && '📄'}
+              {type === 'video' && '🎥'}
+              {' '}
+              {typeLabels[type] || type.charAt(0).toUpperCase() + type.slice(1)}
+              <span className="badge badge-sm badge-outline ml-2">{count}</span>
+            </a>
+          </li>
+        ))}
+        
+        {availableTypes.length === 0 && (
+          <li>
+            <span className="text-gray-500 text-sm">No items yet</span>
+          </li>
+        )}
       </div>
     
     <div className='m-3 cursor-pointer ' >

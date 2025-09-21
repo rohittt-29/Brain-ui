@@ -12,7 +12,7 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
   const [type, setType] = useState(initial?.type || 'note')
   const [content, setContent] = useState(initial?.content || '')
   const [url, setUrl] = useState(initial?.url || '')
-  const [filePath, setFilePath] = useState(initial?.filePath || '')
+  const [file, setFile] = useState(null)
   const [tagsInput, setTagsInput] = useState((initial?.tags || []).join(', '))
 
   // Only reset local state when switching modes or editing a different item
@@ -22,7 +22,7 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
       setType(initial?.type || 'note')
       setContent(initial?.content || '')
       setUrl(initial?.url || '')
-      setFilePath(initial?.filePath || '')
+      setFile(null)
       setTagsInput((initial?.tags || []).join(', '))
     } else if (mode === 'create') {
       // Do not continuously reset while typing; only when mode toggles to create
@@ -30,7 +30,7 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
       setType('note')
       setContent('')
       setUrl('')
-      setFilePath('')
+      setFile(null)
       setTagsInput('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,13 +39,20 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
   const tags = useMemo(() => tagsInput.split(',').map((t) => t.trim()).filter(Boolean), [tagsInput])
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    const payload = { title, type, tags }
-    if (type === 'note') payload.content = content
-    if (type === 'link' || type === 'video') payload.url = url
-    if (type === 'document') payload.filePath = filePath
-    onSubmit(payload)
-  }
+    e.preventDefault();
+  
+    const payload = new FormData();
+    payload.append('title', title);
+    payload.append('type', type);
+    payload.append('tags', tags.join(','));
+  
+    if (type === 'note') payload.append('content', content);
+    if (type === 'link' || type === 'video') payload.append('url', url);
+    if (type === 'document' && file) payload.append('pdf', file); // 👈 'pdf' matches multer field name
+  
+    onSubmit(payload); // 👈 Pass FormData to parent
+  };
+  
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -77,12 +84,27 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
         </div>
       )}
 
-      {type === 'document' && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700">File Path</label>
-          <input value={filePath} onChange={(e) => setFilePath(e.target.value)} className="mt-1 w-full border rounded px-3 py-2" placeholder="/uploads/file.pdf" />
-        </div>
-      )}
+{type === 'document' && (
+  <div>
+        <label className="block text-sm font-medium text-gray-700">Upload File</label>
+    <input
+      type="file"
+      accept=".pdf,.doc,.docx,.txt"
+      onChange={(e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+          setFile(selectedFile); // Store the actual file object
+        }
+      }}
+      className="mt-1 w-full border rounded px-3 py-2"
+    />
+    {file && (
+      <p className="text-sm text-gray-500 mt-1">
+        Selected: {file.name}
+      </p>
+    )}
+  </div>
+)}
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Tags (comma separated)</label>
