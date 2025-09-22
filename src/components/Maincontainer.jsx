@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 const MainContainer = () => {
   const dispatch = useDispatch()
   const { list, loading, error } = useSelector((s) => s.items)
+  const user = useSelector((s) => s.user)
 
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -109,73 +110,110 @@ const MainContainer = () => {
   }
 
   return (
-    <>
-      <div>
-          <Sidebar 
-            availableTypes={availableTypes}
-            activeFilter={filterType}
-            onFilterChange={handleFilterChange}
-          />
-         </div>
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Your Items</h1>
-          {filterType && (
-            <p className="text-sm text-gray-600 mt-1">
-              Showing: {filterType.charAt(0).toUpperCase() + filterType.slice(1)} items
+    <div className="flex h-screen bg-slate-50">
+      {/* Sidebar */}
+      <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+        <Sidebar 
+          availableTypes={availableTypes}
+          activeFilter={filterType}
+          onFilterChange={handleFilterChange}
+        />
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Header */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">
+                {filterType ? filterType.charAt(0).toUpperCase() + filterType.slice(1) : 'All Items'}
+              </h1>
+              <p className="text-slate-600 mt-1">
+                👋 Hi {user?.username || 'User'}! Here's what you have today.
+                {filterType && (
+                  <button 
+                    onClick={() => setFilterType(null)}
+                    className="ml-2 text-green-600 hover:text-green-700 font-medium"
+                  >
+                    (Clear filter)
+                  </button>
+                )}
+              </p>
+            </div>
+            <button 
+              onClick={() => setShowCreate(true)} 
+              className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
+            >
+              + Create New Item
+            </button>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6 pb-8">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-slate-600">Loading…</div>
+            </div>
+          )}
+
+          {/* Items Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+            {Array.isArray(filteredItems) && filteredItems.map((item) => (
+              <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
+            ))}
+          </div>
+
+          {(!loading && Array.isArray(filteredItems) && filteredItems.length === 0) && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                {filterType ? `No ${filterType} items found` : 'No items yet'}
+              </h3>
+              <p className="text-slate-600 mb-6">
+                {filterType ? `Try creating a new ${filterType} item.` : 'Create your first item to get started.'}
+              </p>
               <button 
-                onClick={() => setFilterType(null)}
-                className="ml-2 text-blue-600 hover:underline"
+                onClick={() => setShowCreate(true)} 
+                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
               >
-                (Clear filter)
+                + Create New Item
               </button>
-            </p>
+            </div>
           )}
         </div>
-        <button onClick={() => setShowCreate(true)} className="px-4 py-2 text-sm rounded bg-black text-white">New Item</button>
       </div>
 
-      {error && (
-        <div className="mt-3 p-3 bg-red-50 text-red-700 border border-red-200 rounded text-sm">{error}</div>
-      )}
-
-      {loading && (
-        <div className="mt-4 text-sm text-gray-600">Loading…</div>
-      )}
-
-      <div className="mt-4 grid gap-3">
-        {Array.isArray(filteredItems) && filteredItems.map((item) => (
-          <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
-        ))}
-        {(!loading && Array.isArray(filteredItems) && filteredItems.length === 0) && (
-          <div className="text-sm text-gray-600">
-            {filterType ? `No ${filterType} items found.` : 'No items yet. Create your first one.'}
-          </div>
-        )}
-      </div>
-
+      {/* Modals */}
       {showCreate && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-lg p-5">
-            <h2 className="text-lg font-semibold mb-3">Create Item</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold mb-4 text-slate-900">Create New Item</h2>
             <ItemForm mode="create" onSubmit={handleCreate} onCancel={() => setShowCreate(false)} submitting={submitting} />
           </div>
         </div>
       )}
 
       {editing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg w-full max-w-lg p-5">
-            <h2 className="text-lg font-semibold mb-3">Edit Item</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold mb-4 text-slate-900">Edit Item</h2>
             <ItemForm mode="edit" initial={editing} onSubmit={handleUpdate} onCancel={() => setEditing(null)} submitting={submitting} />
           </div>
-          </div>
-        )}
-         </div>
-       
-      </>
-   
+        </div>
+      )}
+    </div>
   )
 }
 

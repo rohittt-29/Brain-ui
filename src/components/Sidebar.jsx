@@ -1,95 +1,140 @@
 import React from 'react'
 import { Button } from './ui/button'
 import { useNavigate } from 'react-router-dom';
+import { 
+  Home, 
+  FileText, 
+  Link, 
+  Video, 
+  StickyNote, 
+  LogOut,
+  Menu,
+  X
+} from 'lucide-react';
 
 const Sidebar = ({ availableTypes = [], activeFilter, onFilterChange }) => {
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = React.useState(false);
   
-  const handleLogout = () =>{
+  const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
   }
 
-  // Type labels mapping
+  // Type labels mapping with icons
   const typeLabels = {
-    'note': 'Notes',
-    'link': 'Links', 
-    'document': 'Documents',
-    'video': 'Videos'
+    'note': { label: 'Notes', icon: StickyNote },
+    'link': { label: 'Links', icon: Link }, 
+    'document': { label: 'Documents', icon: FileText },
+    'video': { label: 'Videos', icon: Video }
   };
 
   const handleFilterClick = (type) => {
     if (onFilterChange) {
       onFilterChange(type);
     }
+    setIsOpen(false); // Close mobile menu after selection
   };
-  return (
-    <div>
-      <div className="drawer p-4">
-  <input id="my-drawer" type="checkbox" className="drawer-toggle" />
-  <div className="drawer-content">
-    {/* Page content here */}
-    <label htmlFor="my-drawer" className="btn btn-primary drawer-button"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M12 17.25h8.25" />
-</svg>
-</label>
-  </div>
-  <div className="drawer-side">
-    <label htmlFor="my-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
-    <ul className="menu bg-base-200 text-base-content min-h-full w-80 p-4  flex flex-col justify-between">
-      {/* Sidebar content here */}
-      <div>
-        <li className="menu-title">
-          <span>Filter by Type</span>
-        </li>
-        
-        {/* Show All Items */}
-        <li>
-          <a 
-            className={!activeFilter ? 'active' : ''}
-            onClick={() => handleFilterClick(null)}
-          >
-            📋 All Items
-          </a>
-        </li>
-        
-        {/* Dynamic Type Filters */}
-        {availableTypes.map(({ type, count }) => (
-          <li key={type}>
-            <a 
-              className={activeFilter === type ? 'active' : ''}
-              onClick={() => handleFilterClick(type)}
-            >
-              {type === 'note' && '📝'}
-              {type === 'link' && '🔗'}
-              {type === 'document' && '📄'}
-              {type === 'video' && '🎥'}
-              {' '}
-              {typeLabels[type] || type.charAt(0).toUpperCase() + type.slice(1)}
-              <span className="badge badge-sm badge-outline ml-2">{count}</span>
-            </a>
-          </li>
-        ))}
-        
-        {availableTypes.length === 0 && (
-          <li>
-            <span className="text-gray-500 text-sm">No items yet</span>
-          </li>
-        )}
-      </div>
-    
-    <div className='m-3 cursor-pointer ' >
-    <Button variant={"destructive"} className={`cursor-pointer ` } onClick={handleLogout} ><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
-</svg>
-Logout</Button>
 
-  </div>
-  </ul>
-  </div>
-</div>
+  const sidebarContent = (
+    <div className="flex flex-col h-screen bg-slate-900 text-white">
+      {/* Header */}
+      <div className="p-6 border-b border-slate-700">
+        <h1 className="text-2xl font-normal text-white">Brain <span className='text-green-600 font-normal'>Box</span></h1>
+      </div>
+
+      {/* Navigation - Takes up available space */}
+      <div className="flex-1 px-4 py-6">
+        <nav className="space-y-2">
+          {/* All Items */}
+          <button
+            onClick={() => handleFilterClick(null)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+              !activeFilter 
+                ? 'bg-green-600 text-white shadow-lg' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Home className="w-5 h-5" />
+            <span className="font-medium">All Items</span>
+            <span className="ml-auto bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded-full">
+              {availableTypes.reduce((sum, { count }) => sum + count, 0)}
+            </span>
+          </button>
+
+          {/* Type Filters */}
+          {availableTypes.map(({ type, count }) => {
+            const IconComponent = typeLabels[type]?.icon || FileText;
+            return (
+              <button
+                key={type}
+                onClick={() => handleFilterClick(type)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                  activeFilter === type 
+                    ? 'bg-green-600 text-white shadow-lg' 
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <IconComponent className="w-5 h-5" />
+                <span className="font-medium">{typeLabels[type]?.label || type}</span>
+                <span className="ml-auto bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded-full">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          {availableTypes.length === 0 && (
+            <div className="px-4 py-3 text-slate-500 text-sm">
+              No items yet
+            </div>
+          )}
+        </nav>
+      </div>
+
+      {/* Logout Button - Pinned to bottom */}
+      <div className="mt-auto p-4 border-t border-slate-700">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Log out</span>
+        </button>
+      </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Menu Button */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 bg-slate-900 text-white rounded-lg shadow-lg hover:bg-slate-800 transition-colors"
+        >
+          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 w-80 transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:relative lg:inset-0
+      `}>
+        {sidebarContent}
+      </div>
+    </>
   )
 }
 

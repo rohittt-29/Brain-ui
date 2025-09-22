@@ -1,8 +1,8 @@
 import { BASE_URL } from '@/utils/constant';
 import { setUser } from '@/utils/UserSlice';
 import axios from 'axios';
-import React, { useState } from 'react'
-import { useDispatch } from 'react-redux';
+import React, { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -15,6 +15,14 @@ const Login = () => {
     const [error , seterror] = useState("")
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const user = useSelector((state) => state.user);
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user && localStorage.getItem('token')) {
+            navigate('/', { replace: true });
+        }
+    }, [user, navigate]);
     
     const handlelogin = async() =>{
 try {
