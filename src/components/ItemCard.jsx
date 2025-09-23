@@ -2,6 +2,7 @@ import React from 'react'
 import { Button } from './ui/button';
 import { useSelector } from 'react-redux';
 import LinkPreview from './LinkPreview';
+import DocumentPreview from './DocumentPreview';
 import { 
   Edit3, 
   Trash2, 
@@ -83,22 +84,25 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
       )
     }
     if (type === 'document') {
-      return fileUrl ? (
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-sm text-slate-600 truncate flex-1 mr-2">{getFilename(fileUrl)}</span>
-          <a
-            href={toAbsolute(fileUrl)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
-          >
-            <ExternalLink className="w-3 h-3" />
-            View
-          </a>
+      return (
+        <div className="mt-2 flex-1">
+          <DocumentPreview fileUrl={toAbsolute(fileUrl)} title={title} />
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-sm text-slate-600 truncate flex-1 mr-2">{getFilename(fileUrl)}</span>
+            {fileUrl && (
+              <a
+                href={toAbsolute(fileUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                View
+              </a>
+            )}
+          </div>
         </div>
-      ) : (
-        <p className="text-sm text-red-500 mt-2">No file uploaded</p>
-      );
+      )
     }
     
     return null

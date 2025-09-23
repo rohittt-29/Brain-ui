@@ -5,6 +5,7 @@ import ItemCard from './ItemCard'
 import ItemForm from './ItemForm'
 import Sidebar from './Sidebar'
 import toast from 'react-hot-toast'
+import SemanticSearch from './SemanticSearch'
 
 const MainContainer = () => {
   const dispatch = useDispatch()
@@ -15,6 +16,8 @@ const MainContainer = () => {
   const [editing, setEditing] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [filterType, setFilterType] = useState(null) // null means show all
+  const [orderedIds, setOrderedIds] = useState([])
+  const [searchActive, setSearchActive] = useState(false)
 
   useEffect(() => {
     dispatch(fetchItems())
@@ -123,18 +126,18 @@ const MainContainer = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <div className="bg-white border-b border-slate-200 px-4 py-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-lg font-semibold text-slate-900">
                 {filterType ? filterType.charAt(0).toUpperCase() + filterType.slice(1) : 'All Items'}
               </h1>
-              <p className="text-slate-600 mt-1">
+              <p className="text-slate-600 mt-0.5 text-sm">
                 👋 Hi {user?.username || 'User'}! Here's what you have today.
                 {filterType && (
                   <button 
                     onClick={() => setFilterType(null)}
-                    className="ml-2 text-green-600 hover:text-green-700 font-medium"
+                    className="ml-2 text-green-600 hover:text-green-700 font-medium text-xs"
                   >
                     (Clear filter)
                   </button>
@@ -143,15 +146,25 @@ const MainContainer = () => {
             </div>
             <button 
               onClick={() => setShowCreate(true)} 
-              className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl"
+              className="px-3 py-2 cursor-pointer bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors shadow"
             >
-              + Create New Item
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+</svg>
+
             </button>
           </div>
         </div>
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 pb-8">
+          {/* Semantic Search */}
+          <SemanticSearch onSearchActiveChange={(active) => {
+            setSearchActive(active)
+            if (!active) setOrderedIds([])
+          }} onResultsOrder={(ids) => {
+            setOrderedIds(ids || [])
+          }} />
           {error && (
             <div className="mb-4 p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
               {error}
@@ -166,9 +179,16 @@ const MainContainer = () => {
 
           {/* Items Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
-            {Array.isArray(filteredItems) && filteredItems.map((item) => (
-              <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
-            ))}
+            {searchActive && Array.isArray(orderedIds) && orderedIds.length > 0
+              ? orderedIds
+                  .map(id => (list || []).find(it => it._id === id))
+                  .filter(Boolean)
+                  .map(item => (
+                    <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
+                  ))
+              : Array.isArray(filteredItems) && filteredItems.map((item) => (
+                  <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
+                ))}
           </div>
 
           {(!loading && Array.isArray(filteredItems) && filteredItems.length === 0) && (
@@ -192,6 +212,22 @@ const MainContainer = () => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="bg-white border-t border-slate-200 px-4 py-2">
+          <div className="flex items-center justify-center text-xs text-slate-500 gap-1.5 flex-wrap">
+            Built by  <a href="https://rohitmalii.vercel.app" target="_blank" rel="noopener noreferrer"><span className="font-medium text-slate-700 hover:text-green-600 transition-colors">This Guy</span></a>
+            {/* <a href="https://rohitmalii.vercel.app" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 hover:text-green-600 transition-colors">
+              Rohitmalii.vercel.app
+            </a> */}
+            <span>·</span>
+            <span>The source code is available on</span>
+            <a href="https://github.com/rohittt-29" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-slate-700 hover:text-green-600 transition-colors">
+              GitHub
+              
+            </a>
+          </div>
         </div>
       </div>
 

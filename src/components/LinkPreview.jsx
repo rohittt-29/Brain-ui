@@ -13,16 +13,12 @@ const LinkPreview = ({ url, type }) => {
     return (match && match[2].length === 11) ? match[2] : null
   }
 
-  // Extract tweet ID for Twitter
-  const getTwitterTweetId = (url) => {
-    const match = url.match(/twitter\.com\/\w+\/status\/(\d+)/)
-    return match ? match[1] : null
-  }
-
-  // Extract Instagram post ID
-  const getInstagramPostId = (url) => {
-    const match = url.match(/instagram\.com\/p\/([^\/]+)/)
-    return match ? match[1] : null
+  // Best-effort metadata via Microlink (works for Twitter/X, Instagram, etc.)
+  const fetchMicrolink = async (targetUrl) => {
+    const resp = await fetch(`https://api.microlink.io?url=${encodeURIComponent(targetUrl)}&audio=false&video=false&screenshot=false`)
+    if (!resp.ok) return null
+    const data = await resp.json()
+    return data && data.status === 'success' ? data.data : null
   }
 
   useEffect(() => {
@@ -49,53 +45,44 @@ const LinkPreview = ({ url, type }) => {
           }
         }
 
-        // Twitter preview
-        if (url.includes('twitter.com') || url.includes('x.com')) {
-          const tweetId = getTwitterTweetId(url)
-          if (tweetId) {
-            setPreview({
-              type: 'twitter',
-              thumbnail: `https://pbs.twimg.com/media/${tweetId}.jpg`,
-              title: 'Twitter Post',
-              url: url
-            })
-            setLoading(false)
-            return
+        // First try Microlink for rich preview (supports Twitter/X, Instagram, etc.)
+        try {
+          const ml = await fetchMicrolink(url)
+          if (ml) {
+            const imageUrl = ml.image?.url || ml.logo?.url || null
+            if (imageUrl || ml.title || ml.description) {
+              setPreview({
+                type: 'generic',
+                thumbnail: imageUrl,
+                title: ml.title || ml.publisher || 'Link Preview',
+                description: ml.description,
+                url: url
+              })
+              setLoading(false)
+              return
+            }
           }
-        }
-
-        // Instagram preview
-        if (url.includes('instagram.com')) {
-          const postId = getInstagramPostId(url)
-          if (postId) {
-            setPreview({
-              type: 'instagram',
-              thumbnail: `https://instagram.com/p/${postId}/media/?size=l`,
-              title: 'Instagram Post',
-              url: url
-            })
-            setLoading(false)
-            return
-          }
-        }
+        } catch (_) {}
 
         // Generic link preview using a free API
         try {
           const response = await fetch(`https://api.linkpreview.net/?key=5b54e&q=${encodeURIComponent(url)}`)
           if (response.ok) {
             const data = await response.json()
-            if (data.image) {
+            if (data.image || data.title || data.description) {
               setPreview({
                 type: 'generic',
-                thumbnail: data.image,
+                thumbnail: data.image || null,
                 title: data.title || 'Link Preview',
                 description: data.description,
                 url: url
               })
+              setLoading(false)
+              return
             }
           }
         } catch (apiError) {
-          console.log('Link preview API failed, using fallback')
+          // ignore
         }
 
         // Fallback for other links
