@@ -67,12 +67,16 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
 
   const renderBody = () => {
     if (type === 'note') {
-      const preview = (content || '').slice(0, 100)
+      const preview = (content || '').trim()
       return (
         <div className="mt-2 flex-1">
-          <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
-            {preview}{(content || '').length > 100 ? '…' : ''}
-          </p>
+          <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+            <div className="aspect-video bg-slate-50 p-4">
+              <p className="text-sm text-slate-700 leading-relaxed line-clamp-5">
+                {preview || 'No content added yet.'}
+              </p>
+            </div>
+          </div>
         </div>
       )
     }
@@ -86,7 +90,9 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
     if (type === 'document') {
       return (
         <div className="mt-2 flex-1">
-          <DocumentPreview fileUrl={toAbsolute(fileUrl)} title={title} />
+          <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+            <DocumentPreview fileUrl={toAbsolute(fileUrl)} title={title} />
+          </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-sm text-slate-600 truncate flex-1 mr-2">{getFilename(fileUrl)}</span>
             {fileUrl && (

@@ -141,7 +141,7 @@ const LinkPreview = ({ url, type }) => {
       >
         <div className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
           {preview.thumbnail && (
-            <div className="relative aspect-video bg-slate-100">
+            <div className="relative aspect-[16/9] md:aspect-[16/9] lg:aspect-[16/9] bg-slate-100">
               <img 
                 src={preview.thumbnail} 
                 alt={preview.title}

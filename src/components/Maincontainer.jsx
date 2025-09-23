@@ -18,6 +18,9 @@ const MainContainer = () => {
   const [filterType, setFilterType] = useState(null) // null means show all
   const [orderedIds, setOrderedIds] = useState([])
   const [searchActive, setSearchActive] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
 
   useEffect(() => {
     dispatch(fetchItems())
@@ -49,7 +52,6 @@ const MainContainer = () => {
   }
 
   const handleDelete = async (id) => {
-    // Show confirmation toast with action buttons
     toast((t) => (
       <div className="flex flex-col gap-2">
         <span>Are you sure you want to delete this item?</span>
@@ -86,13 +88,11 @@ const MainContainer = () => {
     })
   }
 
-  // Filter items based on selected type
   const filteredItems = useMemo(() => {
     if (!filterType) return list || []
     return (list || []).filter(item => item.type === filterType)
   }, [list, filterType])
 
-  // Get unique types from items for sidebar with counts
   const availableTypes = useMemo(() => {
     if (!Array.isArray(list)) return []
     const typeCounts = list.reduce((acc, item) => {
@@ -109,19 +109,41 @@ const MainContainer = () => {
   }, [list])
 
   const handleFilterChange = (type) => {
-    setFilterType(type === filterType ? null : type) // Toggle filter
+    setFilterType(type === filterType ? null : type)
+    setCurrentPage(1)
   }
+
+  // Compute items to show: search-ordered or filtered
+  const itemsToDisplay = useMemo(() => {
+    if (searchActive && Array.isArray(orderedIds) && orderedIds.length > 0) {
+      return orderedIds
+        .map(id => (list || []).find(it => it._id === id))
+        .filter(Boolean)
+    }
+    return Array.isArray(filteredItems) ? filteredItems : []
+  }, [searchActive, orderedIds, list, filteredItems])
+
+  // Reset to first page when dataset changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchActive, orderedIds, filterType])
+
+  const totalItems = itemsToDisplay.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const pageStart = (currentPage - 1) * pageSize
+  const pageEnd = pageStart + pageSize
+  const pagedItems = itemsToDisplay.slice(pageStart, pageEnd)
 
   return (
     <div className="flex h-screen bg-slate-50">
-      {/* Sidebar */}
-      <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+      {/* Sidebar (desktop only) */}
+      <aside className="hidden lg:block lg:w-80 lg:flex-shrink-0">
         <Sidebar 
           availableTypes={availableTypes}
           activeFilter={filterType}
           onFilterChange={handleFilterChange}
         />
-      </div>
+      </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -144,27 +166,39 @@ const MainContainer = () => {
                 )}
               </p>
             </div>
-            <button 
-              onClick={() => setShowCreate(true)} 
-              className="px-3 py-2 cursor-pointer bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors shadow"
-            >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-</svg>
-
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Mobile: sidebar toggle */}
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded"
+                aria-label="Open sidebar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+                </svg>
+              </button>
+              {/* Desktop: create button */}
+              <button 
+                onClick={() => setShowCreate(true)} 
+                className="hidden lg:inline-flex px-3 py-2 cursor-pointer bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors shadow"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 pb-8">
-          {/* Semantic Search */}
           <SemanticSearch onSearchActiveChange={(active) => {
             setSearchActive(active)
             if (!active) setOrderedIds([])
           }} onResultsOrder={(ids) => {
             setOrderedIds(ids || [])
           }} />
+
           {error && (
             <div className="mb-4 p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
               {error}
@@ -177,19 +211,69 @@ const MainContainer = () => {
             </div>
           )}
 
-          {/* Items Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
-            {searchActive && Array.isArray(orderedIds) && orderedIds.length > 0
-              ? orderedIds
-                  .map(id => (list || []).find(it => it._id === id))
-                  .filter(Boolean)
-                  .map(item => (
-                    <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
-                  ))
-              : Array.isArray(filteredItems) && filteredItems.map((item) => (
-                  <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
-                ))}
+          {/* Top pagination controls */}
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="text-xs text-slate-600">
+              Showing {Math.min(totalItems, pageStart + 1)}–{Math.min(totalItems, pageEnd)} of {totalItems}
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-600">Per page</label>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1) }}
+                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+              >
+                <option value={8}>8</option>
+                <option value={12}>12</option>
+                <option value={16}>16</option>
+                <option value={24}>24</option>
+              </select>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-2 py-1 text-xs border border-slate-300 rounded bg-white disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-slate-600 px-1">{currentPage}/{totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-2 py-1 text-xs border border-slate-300 rounded bg-white disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+            {pagedItems.map((item) => (
+              <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />
+            ))}
+          </div>
+
+          {/* Bottom pagination controls */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded bg-white disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-slate-600">Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded bg-white disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
 
           {(!loading && Array.isArray(filteredItems) && filteredItems.length === 0) && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -218,20 +302,42 @@ const MainContainer = () => {
         <div className="bg-white border-t border-slate-200 px-4 py-2">
           <div className="flex items-center justify-center text-xs text-slate-500 gap-1.5 flex-wrap">
             Built by  <a href="https://rohitmalii.vercel.app" target="_blank" rel="noopener noreferrer"><span className="font-medium text-slate-700 hover:text-green-600 transition-colors">This Guy</span></a>
-            {/* <a href="https://rohitmalii.vercel.app" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 hover:text-green-600 transition-colors">
-              Rohitmalii.vercel.app
-            </a> */}
             <span>·</span>
             <span>The source code is available on</span>
             <a href="https://github.com/rohittt-29" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-slate-700 hover:text-green-600 transition-colors">
               GitHub
-              
             </a>
           </div>
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Mobile Sidebar Drawer (left side, slide-in) */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-80 max-w-[85%]">
+            <div className="h-full bg-white shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-out translate-x-0 will-change-transform scroll-smooth scroll-touch">
+              <Sidebar 
+                availableTypes={availableTypes}
+                activeFilter={filterType}
+                onFilterChange={(type) => { setFilterType(type === filterType ? null : type); setMobileSidebarOpen(false) }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Floating Create Button */}
+      <button
+        onClick={() => setShowCreate(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-green-600 text-white shadow-xl flex items-center justify-center hover:bg-green-700"
+        aria-label="Create item"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+      </button>
+
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl">
@@ -254,5 +360,3 @@ const MainContainer = () => {
 }
 
 export default MainContainer
-
-

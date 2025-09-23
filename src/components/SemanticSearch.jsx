@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import api from '../utils/axios'
 
@@ -12,11 +12,7 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder }) => {
 
   const hasQuery = useMemo(() => query.trim().length > 0, [query])
 
-  useEffect(() => {
-    // Notify parent to hide items grid while searching or showing results
-    const active = hasQuery && (loading || (Array.isArray(results) && results.length > 0) || (Array.isArray(keywordMatches) && keywordMatches.length > 0))
-    onSearchActiveChange?.(active)
-  }, [hasQuery, loading, results, keywordMatches, onSearchActiveChange])
+  // Note: we explicitly toggle active state in submit/clear instead of an effect to avoid loops
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.()
@@ -46,6 +42,7 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder }) => {
       const sorted = boosted.sort((a, b) => (Number(b?.similarity) || 0) - (Number(a?.similarity) || 0))
       setResults(sorted)
       onResultsOrder?.(sorted.map(r => r._id).filter(Boolean))
+      onSearchActiveChange?.(true)
 
       // If semantic results are empty or very weak, fall back to keyword matching on local items
       const allWeak = sorted.length > 0 && sorted.every((r) => (Number(r?.similarity) || 0) < 0.2)
@@ -63,6 +60,7 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder }) => {
         })
         setKeywordMatches(kw)
         onResultsOrder?.(kw.map(it => it._id).filter(Boolean))
+        onSearchActiveChange?.(true)
       }
     } catch (err) {
       if (err?.isAuthMissing) {
@@ -74,7 +72,7 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder }) => {
       }
     }
     setLoading(false)
-  }, [hasQuery, query])
+  }, [hasQuery, query, itemsList, onResultsOrder, onSearchActiveChange])
 
   const onKeyDown = useCallback((e) => {
     if (e.key === 'Enter') {
