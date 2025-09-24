@@ -1,3 +1,16 @@
+## Environment setup
+
+Create a `.env` file in the project root (next to `package.json`) based on the following example:
+
+```
+# Base URL of the backend (no trailing slash needed)
+VITE_API_BASE=https://your-backend.onrender.com
+
+# Legacy fallback (if you prefer the old name)
+# VITE_API_URL=https://your-backend.onrender.com
+```
+
+Restart the dev server after changing env values.
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

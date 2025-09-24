@@ -4,7 +4,7 @@ import { BASE_URL } from './constant'
 
 // Axios instance with JWT interceptor
 const api = axios.create({
-  baseURL: `${BASE_URL}/api`,   // yaha /api add kar de agar backend endpoints /api se start hote hai
+  baseURL: `${BASE_URL.replace(/\/$/, '')}/api`,
 })
 
 api.interceptors.request.use((config) => {
