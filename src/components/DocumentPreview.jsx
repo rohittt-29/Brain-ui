@@ -24,6 +24,9 @@ const DocumentPreview = ({ fileUrl, title }) => {
             <span className="text-xs">Preview not available</span>
           </div>
         </object>
+        <div className="px-2 py-1 bg-white/70 text-slate-900 text-xs border-t border-slate-200 truncate" title={title || 'Document'}>
+          {title || 'Document'}
+        </div>
       </div>
     )
   }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ExternalLink, Play, Image as ImageIcon } from 'lucide-react'
 
-const LinkPreview = ({ url, type }) => {
+const LinkPreview = ({ url, type, itemTitle }) => {
   const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -193,7 +193,7 @@ const LinkPreview = ({ url, type }) => {
               )}
               {preview.type === 'generic' && <ExternalLink className="w-3 h-3 text-slate-500" />}
               <span className="text-sm font-medium text-slate-900 truncate">
-                {preview.title}
+                {itemTitle || preview.title}
               </span>
             </div>
             {preview.description && (

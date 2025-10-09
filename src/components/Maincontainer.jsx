@@ -21,6 +21,8 @@ const MainContainer = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(12)
+  const [openGroups, setOpenGroups] = useState({})
+  const [subFilter, setSubFilter] = useState(null) // e.g., domain for links or ext for docs
 
   useEffect(() => {
     dispatch(fetchItems())
@@ -43,6 +45,8 @@ const MainContainer = () => {
     setSubmitting(true)
     try {
       await dispatch(updateItem({ id: editing._id, data: payload })).unwrap()
+      // Ensure UI reflects latest data from server
+      await dispatch(fetchItems())
       setEditing(null)
       toast.success('Item updated successfully')
     } catch (error) {
@@ -89,11 +93,48 @@ const MainContainer = () => {
   }
 
   const filteredItems = useMemo(() => {
-    if (!filterType) return list || []
-    return (list || []).filter(item => item.type === filterType)
-  }, [list, filterType])
+    const deriveDomain = (u) => {
+      try {
+        const urlObj = new URL(String(u || ''))
+        return (urlObj.hostname || '').replace(/^www\./, '').toLowerCase()
+      } catch { return '' }
+    }
+    const deriveExt = (it) => {
+      const src = String(it?.fileUrl || it?.title || '').toLowerCase()
+      const m = src.match(/\.([a-z0-9]+)(?:$|\?)/i)
+      return m ? m[1] : ''
+    }
+    let base = list || []
+    if (filterType) base = base.filter(item => item.type === filterType)
+    if (filterType === 'link' && subFilter) {
+      base = base.filter(it => {
+        const sub = String(it?.categorySub || '').trim() || deriveDomain(it?.url)
+        return sub === subFilter
+      })
+    }
+    if (filterType === 'document' && subFilter) {
+      base = base.filter(it => {
+        const sub = String(it?.categorySub || '').trim() || deriveExt(it)
+        return sub === subFilter
+      })
+    }
+    return base
+  }, [list, filterType, subFilter])
+
+  // Grouped by subcategory for the currently filtered list (used in Links/Docs tabs)
+  const groupedBySub = useMemo(() => {
+    const groups = {}
+    const pool = Array.isArray(filteredItems) ? filteredItems : []
+    pool.forEach((it) => {
+      const key = String(it?.categorySub || '').trim() || (it.type === 'document' ? 'file' : 'external')
+      if (!groups[key]) groups[key] = []
+      groups[key].push(it)
+    })
+    return groups
+  }, [filteredItems])
 
   const availableTypes = useMemo(() => {
+    // preserve existing sidebar counts per type
     if (!Array.isArray(list)) return []
     const typeCounts = list.reduce((acc, item) => {
       if (item.type) {
@@ -101,17 +142,53 @@ const MainContainer = () => {
       }
       return acc
     }, {})
-    
-    return Object.keys(typeCounts).map(type => ({
-      type,
-      count: typeCounts[type]
-    })).sort((a, b) => a.type.localeCompare(b.type))
+    return Object.keys(typeCounts).map(type => ({ type, count: typeCounts[type] }))
   }, [list])
 
   const handleFilterChange = (type) => {
-    setFilterType(type === filterType ? null : type)
+    const next = type === filterType ? null : type
+    setFilterType(next)
+    // reset subFilter when changing/toggling top-level filter
+    setSubFilter(null)
     setCurrentPage(1)
   }
+
+  const handleSubFilterChange = (type, key) => {
+    setFilterType(type)
+    setSubFilter(key || null)
+    setCurrentPage(1)
+  }
+
+  // Build sub-groups (domains/extensions) for Sidebar nesting
+  const subGroups = useMemo(() => {
+    const domains = new Set()
+    const exts = new Set()
+    const deriveDomain = (u) => {
+      try {
+        const urlObj = new URL(String(u || ''))
+        return (urlObj.hostname || '').replace(/^www\./, '').toLowerCase()
+      } catch { return '' }
+    }
+    const deriveExt = (it) => {
+      const src = String(it?.fileUrl || it?.title || '').toLowerCase()
+      const m = src.match(/\.([a-z0-9]+)(?:$|\?)/i)
+      return m ? m[1] : ''
+    }
+    ;(list || []).forEach((it) => {
+      if (it.type === 'link') {
+        const key = String(it?.categorySub || '').trim() || deriveDomain(it?.url)
+        if (key) domains.add(key)
+      }
+      if (it.type === 'document') {
+        const key = String(it?.categorySub || '').trim() || deriveExt(it)
+        if (key) exts.add(key)
+      }
+    })
+    return {
+      link: Array.from(domains).sort((a,b)=>a.localeCompare(b)),
+      document: Array.from(exts).sort((a,b)=>a.localeCompare(b)),
+    }
+  }, [list])
 
   // Compute items to show: search-ordered or filtered
   const itemsToDisplay = useMemo(() => {
@@ -142,6 +219,9 @@ const MainContainer = () => {
           availableTypes={availableTypes}
           activeFilter={filterType}
           onFilterChange={handleFilterChange}
+          onSubFilterChange={handleSubFilterChange}
+          subGroups={subGroups}
+          activeSubFilter={subFilter}
         />
       </aside>
 
@@ -248,6 +328,7 @@ const MainContainer = () => {
             </div>
           </div>
 
+          {/* Flat grid; reacts to Sidebar filters only */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
             {pagedItems.map((item) => (
               <ItemCard key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} />

@@ -83,7 +83,7 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
     if (type === 'link' || type === 'video') {
       return (
         <div className="mt-2 flex-1">
-          <LinkPreview url={toAbsolute(url)} type={type} />
+          <LinkPreview url={toAbsolute(url)} type={type} itemTitle={title} />
         </div>
       )
     }

@@ -43,6 +43,17 @@ export const deleteItem = createAsyncThunk('items/deleteItem', async (id, thunkA
   }
 })
 
+const normalizeTags = (item) => {
+  if (!item) return item
+  const copy = { ...item }
+  if (typeof copy.tags === 'string') {
+    copy.tags = copy.tags.split(',').map(t => t.trim()).filter(Boolean)
+  } else if (!Array.isArray(copy.tags)) {
+    copy.tags = []
+  }
+  return copy
+}
+
 const itemsSlice = createSlice({
   name: 'items',
   initialState: {
@@ -62,9 +73,9 @@ const itemsSlice = createSlice({
         // Ensure we always have an array
         const payload = action.payload
         if (Array.isArray(payload)) {
-          state.list = payload
+          state.list = payload.map(normalizeTags)
         } else if (payload && Array.isArray(payload.data)) {
-          state.list = payload.data
+          state.list = payload.data.map(normalizeTags)
         } else {
           state.list = []
         }
@@ -80,7 +91,7 @@ const itemsSlice = createSlice({
       })
       .addCase(createItem.fulfilled, (state, action) => {
         state.loading = false
-        state.list.unshift(action.payload)
+        state.list.unshift(normalizeTags(action.payload))
       })
       .addCase(createItem.rejected, (state, action) => {
         state.loading = false
@@ -93,8 +104,9 @@ const itemsSlice = createSlice({
       })
       .addCase(updateItem.fulfilled, (state, action) => {
         state.loading = false
-        const idx = state.list.findIndex((i) => i._id === action.payload._id)
-        if (idx !== -1) state.list[idx] = action.payload
+        const updated = normalizeTags(action.payload)
+        // Replace element immutably so React sees a new array reference
+        state.list = (state.list || []).map((it) => (it._id === updated._id ? updated : it))
       })
       .addCase(updateItem.rejected, (state, action) => {
         state.loading = false
