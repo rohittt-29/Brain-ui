@@ -44,7 +44,25 @@ const MainContainer = () => {
     if (!editing) return
     setSubmitting(true)
     try {
-      await dispatch(updateItem({ id: editing._id, data: payload })).unwrap()
+      // If payload is FormData and no file is attached, convert to plain object
+      let dataToSend = payload
+      try {
+        if (typeof FormData !== 'undefined' && payload instanceof FormData) {
+          const maybeFile = payload.get && payload.get('pdf')
+          if (!maybeFile) {
+            // convert entries to simple object to send JSON instead of multipart
+            const obj = {}
+            for (const [k, v] of payload.entries()) obj[k] = v
+            dataToSend = obj
+          }
+        }
+      } catch (e) {
+        // If FormData check fails, proceed with original payload
+        console.debug('FormData conversion skipped', e)
+      }
+
+      console.debug('Updating item', editing._id, 'payload keys:', typeof dataToSend === 'object' ? Object.keys(dataToSend) : typeof dataToSend)
+      await dispatch(updateItem({ id: editing._id, data: dataToSend })).unwrap()
       // Ensure UI reflects latest data from server
       await dispatch(fetchItems())
       setEditing(null)
