@@ -290,12 +290,16 @@ const MainContainer = () => {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 pb-8">
-          <SemanticSearch onSearchActiveChange={(active) => {
-            setSearchActive(active)
-            if (!active) setOrderedIds([])
-          }} onResultsOrder={(ids) => {
-            setOrderedIds(ids || [])
-          }} />
+          <SemanticSearch 
+            onSearchActiveChange={(active) => {
+              setSearchActive(active)
+              if (!active) setOrderedIds([])
+            }} 
+            onResultsOrder={(ids) => {
+              setOrderedIds(ids || [])
+            }}
+            currentSection={filterType} // Pass the current section
+          />
 
           {error && (
             <div className="mb-4 p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">

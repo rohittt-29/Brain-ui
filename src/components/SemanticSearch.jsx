@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import api from '../utils/axios'
 
-const SemanticSearch = ({ onSearchActiveChange, onResultsOrder }) => {
+const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }) => {
   const itemsList = useSelector((s) => s.items?.list || [])
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -16,63 +16,53 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder }) => {
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.()
-    if (!hasQuery) return
+    if (!hasQuery) {
+      setResults([])
+      setKeywordMatches([])
+      onResultsOrder?.([])
+      onSearchActiveChange?.(false)
+      return
+    }
+
     setLoading(true)
     setError('')
     setResults([])
     setKeywordMatches([])
+    
     try {
-      const { data } = await api.post('/search', { query: query.trim() })
-      // Expecting data.results as an array
-      const items = Array.isArray(data?.results) ? data.results : []
-      // Boost semantic scores with keyword hits in title/tags/url for better relevance
-      const boosted = (Array.isArray(items) ? items : []).map((r) => {
-        const base = Number(r?.similarity) || 0
-        const q = query.trim().toLowerCase()
-        const title = String(r?.title || '').toLowerCase()
-        const url = String(r?.url || '').toLowerCase()
-        const tags = Array.isArray(r?.tags) ? r.tags.map(t => String(t).toLowerCase()) : []
-        let bonus = 0
-        if (q && title.includes(q)) bonus += 0.5
-        if (q && url.includes(q)) bonus += 0.2
-        if (q && tags.some(t => t.includes(q))) bonus += 0.3
-        const similarity = Math.max(0, Math.min(1, base + bonus))
-        return { ...r, similarity }
-      })
-      const sorted = boosted.sort((a, b) => (Number(b?.similarity) || 0) - (Number(a?.similarity) || 0))
-      setResults(sorted)
-      onResultsOrder?.(sorted.map(r => r._id).filter(Boolean))
-      onSearchActiveChange?.(true)
+      const { data } = await api.post('/search', { 
+        query: query.trim(),
+        section: currentSection
+      });
+      
+      if (!data || !Array.isArray(data.results)) {
+        throw new Error('Invalid response format');
+      }
+      
+      // Results are already sorted by relevance from the backend
+      setResults(data.results)
+      onResultsOrder?.(data.results.map(r => r._id).filter(Boolean))
+      onSearchActiveChange?.(data.results.length > 0)
 
-      // If semantic results are empty or very weak, fall back to keyword matching on local items
-      const allWeak = sorted.length > 0 && sorted.every((r) => (Number(r?.similarity) || 0) < 0.2)
-      if (sorted.length === 0 || allWeak) {
-        const q = query.trim().toLowerCase()
-        const kw = (itemsList || []).filter((it) => {
-          const title = String(it?.title || '').toLowerCase()
-          const content = String(it?.content || '').toLowerCase()
-          const tags = Array.isArray(it?.tags) ? it.tags.map(t => String(t).toLowerCase()) : []
-          return (
-            title.includes(q) ||
-            content.includes(q) ||
-            tags.some(t => t.includes(q))
-          )
-        })
-        setKeywordMatches(kw)
-        onResultsOrder?.(kw.map(it => it._id).filter(Boolean))
-        onSearchActiveChange?.(true)
+      // Show appropriate messages based on search type and results
+      if (data.results.length === 0) {
+        setError('No matches found for your search');
+      } else if (data.searchType === 'semantic') {
+        // Optional: Inform user that semantic search was used
+        console.log('Using semantic search results');
       }
     } catch (err) {
+      console.error('Search error:', err);
       if (err?.isAuthMissing) {
-        setError('Please login to use semantic search.')
+        setError('Please login to search.');
       } else if (err?.response?.data?.message) {
-        setError(err.response.data.message)
+        setError(err.response.data.message);
       } else {
-        setError('Failed to fetch search results')
+        setError('Search failed. Please try again.');
       }
     }
     setLoading(false)
-  }, [hasQuery, query, itemsList, onResultsOrder, onSearchActiveChange])
+  }, [hasQuery, query, currentSection, onResultsOrder, onSearchActiveChange])
 
   const onKeyDown = useCallback((e) => {
     if (e.key === 'Enter') {
@@ -87,10 +77,11 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder }) => {
 
   const getMatchLabel = (score) => {
     const s = Number(score) || 0
-    if (s >= 0.7) return { text: 'Strong match', color: 'bg-green-100 text-green-700' }
-    if (s >= 0.4) return { text: 'Related', color: 'bg-blue-100 text-blue-700' }
-    if (s >= 0.2) return { text: 'Weakly related', color: 'bg-amber-100 text-amber-800' }
-    return { text: 'Low match', color: 'bg-slate-100 text-slate-600' }
+    if (s >= 0.8) return { text: 'Strong match', color: 'bg-green-100 text-green-700' }
+    if (s >= 0.6) return { text: 'Good match', color: 'bg-blue-100 text-blue-700' }
+    if (s >= 0.4) return { text: 'Related', color: 'bg-amber-100 text-amber-800' }
+    if (s >= 0.2) return { text: 'Weakly related', color: 'bg-slate-100 text-slate-600' }
+    return { text: 'Low match', color: 'bg-red-100 text-red-600' }
   }
 
   // Reindex UI removed; endpoint remains available for maintenance
