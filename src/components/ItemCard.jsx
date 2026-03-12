@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { useSelector } from 'react-redux';
 import LinkPreview from './LinkPreview';
 import DocumentPreview from './DocumentPreview';
+import ShareButton from './ShareButton';
 import { 
   Edit3, 
   Trash2, 
@@ -10,9 +11,7 @@ import {
   FileText, 
   Link as LinkIcon, 
   Video, 
-  StickyNote,
-  Calendar,
-  MoreHorizontal
+  StickyNote
 } from 'lucide-react';
 
 const ItemCard = ({ item, onEdit, onDelete }) => {
@@ -115,12 +114,12 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group h-full flex flex-col">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group h-full flex flex-col">
       {/* Card Header */}
-      <div className="p-4 border-b border-slate-100">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-900 text-lg leading-tight mb-2 line-clamp-2">
+            <h3 className="font-semibold text-slate-900 dark:text-white text-lg leading-tight mb-2 line-clamp-2">
               {title}
             </h3>
             <div className="flex items-center gap-2">
@@ -135,18 +134,19 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button 
               onClick={() => onEdit(item)} 
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               title="Edit"
             >
               <Edit3 className="w-4 h-4" />
             </button>
             <button 
               onClick={() => onDelete(_id)} 
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />
             </button>
+            <ShareButton item={item} />
           </div>
         </div>
       </div>
@@ -161,13 +161,13 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
             {tags.slice(0, 3).map((tag, i) => (
               <span 
                 key={i} 
-                className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md border border-slate-200"
+                className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs rounded-md border border-slate-200 dark:border-slate-700"
               >
                 {tag}
               </span>
             ))}
             {tags.length > 3 && (
-              <span className="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-md border border-slate-200">
+              <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-md border border-slate-200 dark:border-slate-700">
                 +{tags.length - 3} more
               </span>
             )}
@@ -176,9 +176,9 @@ const ItemCard = ({ item, onEdit, onDelete }) => {
       </div>
 
       {/* Card Footer */}
-      <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
+      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800">
         {/* Metadata Section */}
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
           <div className="flex items-center gap-3">
             <span>Created by {user?.username || 'User'}</span>
             <span>•</span>

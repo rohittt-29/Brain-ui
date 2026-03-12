@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { BASE_URL } from './constant'
- // path apne project ke hisaab se adjust kar
+
 
 // Axios instance with JWT interceptor
 const api = axios.create({

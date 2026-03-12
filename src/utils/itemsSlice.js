@@ -59,7 +59,7 @@ const itemsSlice = createSlice({
   initialState: {
     list: [],
     loading: false,
-    error: null,
+    error: null
   },
   reducers: {},
   extraReducers: (builder) => {

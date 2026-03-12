@@ -6,6 +6,8 @@ import ItemForm from './ItemForm'
 import Sidebar from './Sidebar'
 import toast from 'react-hot-toast'
 import SemanticSearch from './SemanticSearch'
+import ThemeToggle from './ThemeToggle'
+import { Share2, X } from 'lucide-react'
 
 const MainContainer = () => {
   const dispatch = useDispatch()
@@ -23,6 +25,72 @@ const MainContainer = () => {
   const [pageSize, setPageSize] = useState(12)
   const [openGroups, setOpenGroups] = useState({})
   const [subFilter, setSubFilter] = useState(null) // e.g., domain for links or ext for docs
+
+  // Share tutorial — show once per user
+  const [showShareTutorial, setShowShareTutorial] = useState(() => {
+    return !localStorage.getItem('brainbox_share_tutorial_seen')
+  })
+  const dismissShareTutorial = () => {
+    setShowShareTutorial(false)
+    localStorage.setItem('brainbox_share_tutorial_seen', 'true')
+  }
+
+  // Reset page when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, searchActive, subFilter]);
+
+  // Clear search/filter when items are updated
+  useEffect(() => {
+    if (!searchActive) {
+      setOrderedIds([]);
+    }
+  }, [list, searchActive]);
+
+  // Single source of truth for filtered and sorted items
+  const processedItems = useMemo(() => {
+    // Start with the base list
+    let items = [...list];
+    
+    // If semantic search is active, use search results order
+    if (searchActive && orderedIds.length > 0) {
+      const itemMap = new Map(items.map(i => [i._id, i]));
+      items = orderedIds
+        .map(id => itemMap.get(id))
+        .filter(Boolean);
+    } else {
+      // Only apply filters if not in search mode
+      if (filterType && filterType !== 'All Items') {
+        items = items.filter(i => i.type.toLowerCase() === filterType.toLowerCase());
+      }
+      
+      if (subFilter) {
+        items = items.filter(i => {
+          const sub = String(i?.categorySub || '').trim();
+          if (sub) return sub === subFilter;
+          // Fallback derivation if categorySub is empty
+          if (i.type === 'link') {
+            try {
+              const urlObj = new URL(String(i?.url || ''));
+              const host = (urlObj.hostname || '').replace(/^www\./, '').toLowerCase();
+              return host === subFilter || host.split('.').slice(-2).join('.') === subFilter;
+            } catch { return false; }
+          }
+          if (i.type === 'document') {
+            const src = String(i?.fileUrl || i?.title || '').toLowerCase();
+            const m = src.match(/\.([a-z0-9]+)(?:$|\?)/i);
+            return m ? m[1] === subFilter : false;
+          }
+          return true;
+        });
+      }
+      
+      // Sort by date when not in search mode
+      items = items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    return items;
+  }, [list, orderedIds, searchActive, filterType, subFilter]);
 
   useEffect(() => {
     dispatch(fetchItems())
@@ -110,7 +178,7 @@ const MainContainer = () => {
     })
   }
 
-  const filteredItems = useMemo(() => {
+  const itemsByCategory = useMemo(() => {
     const deriveDomain = (u) => {
       try {
         const urlObj = new URL(String(u || ''))
@@ -142,14 +210,14 @@ const MainContainer = () => {
   // Grouped by subcategory for the currently filtered list (used in Links/Docs tabs)
   const groupedBySub = useMemo(() => {
     const groups = {}
-    const pool = Array.isArray(filteredItems) ? filteredItems : []
+    const pool = Array.isArray(itemsByCategory) ? itemsByCategory : []
     pool.forEach((it) => {
       const key = String(it?.categorySub || '').trim() || (it.type === 'document' ? 'file' : 'external')
       if (!groups[key]) groups[key] = []
       groups[key].push(it)
     })
     return groups
-  }, [filteredItems])
+  }, [itemsByCategory])
 
   const availableTypes = useMemo(() => {
     // preserve existing sidebar counts per type
@@ -208,29 +276,25 @@ const MainContainer = () => {
     }
   }, [list])
 
-  // Compute items to show: search-ordered or filtered
+  // Use processed items for display
   const itemsToDisplay = useMemo(() => {
-    if (searchActive && Array.isArray(orderedIds) && orderedIds.length > 0) {
-      return orderedIds
-        .map(id => (list || []).find(it => it._id === id))
-        .filter(Boolean)
-    }
-    return Array.isArray(filteredItems) ? filteredItems : []
-  }, [searchActive, orderedIds, list, filteredItems])
+    return Array.isArray(processedItems) ? processedItems : [];
+  }, [processedItems]);
 
   // Reset to first page when dataset changes
   useEffect(() => {
-    setCurrentPage(1)
-  }, [searchActive, orderedIds, filterType])
+    setCurrentPage(1);
+  }, [searchActive, orderedIds, filterType]);
 
-  const totalItems = itemsToDisplay.length
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
-  const pageStart = (currentPage - 1) * pageSize
-  const pageEnd = pageStart + pageSize
-  const pagedItems = itemsToDisplay.slice(pageStart, pageEnd)
+  // Pagination calculations
+  const totalItems = itemsToDisplay.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageEnd = pageStart + pageSize;
+  const pagedItems = itemsToDisplay.slice(pageStart, pageEnd);
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       {/* Sidebar (desktop only) */}
       <aside className="hidden lg:block lg:w-80 lg:flex-shrink-0">
         <Sidebar 
@@ -246,13 +310,13 @@ const MainContainer = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <div className="bg-white border-b border-slate-200 px-4 py-2">
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-semibold text-slate-900">
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
                 {filterType ? filterType.charAt(0).toUpperCase() + filterType.slice(1) : 'All Items'}
               </h1>
-              <p className="text-slate-600 mt-0.5 text-sm">
+              <p className="text-slate-600 dark:text-slate-400 mt-0.5 text-sm">
                 👋 Hi {user?.username || 'User'}! Here's what you have today.
                 {filterType && (
                   <button 
@@ -264,11 +328,12 @@ const MainContainer = () => {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
               {/* Mobile: sidebar toggle */}
               <button
                 onClick={() => setMobileSidebarOpen(true)}
-                className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded"
+                className="lg:hidden p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded"
                 aria-label="Open sidebar"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -289,7 +354,29 @@ const MainContainer = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 pb-8">
+        <div className="flex-1 overflow-y-auto p-6 pb-8 dark:bg-slate-950">
+
+          {/* Share Tutorial Banner — shown once */}
+          {showShareTutorial && (
+            <div className="mb-5 relative bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl px-5 py-4 shadow-lg animate-fade-in">
+              <button
+                onClick={dismissShareTutorial}
+                className="absolute top-3 right-3 p-1 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Share2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">✨ Now You can also share your Brains!</p>
+                  <p className="text-green-100 text-xs mt-0.5">Hover on any card and click the share icon to send documents, links, or notes directly via WhatsApp or copy to clipboard.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <SemanticSearch 
             onSearchActiveChange={(active) => {
               setSearchActive(active)
@@ -302,28 +389,28 @@ const MainContainer = () => {
           />
 
           {error && (
-            <div className="mb-4 p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <div className="text-slate-600">Loading…</div>
+              <div className="text-slate-600 dark:text-slate-400">Loading…</div>
             </div>
           )}
 
           {/* Top pagination controls */}
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="text-xs text-slate-600">
+            <div className="text-xs text-slate-600 dark:text-slate-400">
               Showing {Math.min(totalItems, pageStart + 1)}–{Math.min(totalItems, pageEnd)} of {totalItems}
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-600">Per page</label>
+              <label className="text-xs text-slate-600 dark:text-slate-400">Per page</label>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1) }}
-                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                className="text-xs border border-slate-300 dark:border-slate-600 rounded px-2 py-1 bg-white dark:bg-slate-800 dark:text-slate-200"
               >
                 <option value={8}>8</option>
                 <option value={12}>12</option>
@@ -334,15 +421,15 @@ const MainContainer = () => {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="px-2 py-1 text-xs border border-slate-300 rounded bg-white disabled:opacity-50"
+                  className="px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200 disabled:opacity-50"
                 >
                   Prev
                 </button>
-                <span className="text-xs text-slate-600 px-1">{currentPage}/{totalPages}</span>
+                <span className="text-xs text-slate-600 dark:text-slate-400 px-1">{currentPage}/{totalPages}</span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="px-2 py-1 text-xs border border-slate-300 rounded bg-white disabled:opacity-50"
+                  className="px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200 disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -363,32 +450,32 @@ const MainContainer = () => {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="px-3 py-1.5 text-sm border border-slate-300 rounded bg-white disabled:opacity-50"
+                className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200 disabled:opacity-50"
               >
                 Prev
               </button>
-              <span className="text-sm text-slate-600">Page {currentPage} of {totalPages}</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">Page {currentPage} of {totalPages}</span>
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="px-3 py-1.5 text-sm border border-slate-300 rounded bg-white disabled:opacity-50"
+                className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 dark:text-slate-200 disabled:opacity-50"
               >
                 Next
               </button>
             </div>
           )}
 
-          {(!loading && Array.isArray(filteredItems) && filteredItems.length === 0) && (
+          {(!loading && Array.isArray(processedItems) && processedItems.length === 0) && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                 {filterType ? `No ${filterType} items found` : 'No items yet'}
               </h3>
-              <p className="text-slate-600 mb-6">
+              <p className="text-slate-600 dark:text-slate-400 mb-6">
                 {filterType ? `Try creating a new ${filterType} item.` : 'Create your first item to get started.'}
               </p>
               <button 
@@ -402,12 +489,12 @@ const MainContainer = () => {
         </div>
 
         {/* Footer */}
-        <div className="bg-white border-t border-slate-200 px-4 py-2">
-          <div className="flex items-center justify-center text-xs text-slate-500 gap-1.5 flex-wrap">
-            Built by  <a href="https://rohitmalii.vercel.app" target="_blank" rel="noopener noreferrer"><span className="font-medium text-slate-700 hover:text-green-600 transition-colors">This Guy</span></a>
+        <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2">
+          <div className="flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 gap-1.5 flex-wrap">
+            Built by  <a href="https://rohitmalii.vercel.app" target="_blank" rel="noopener noreferrer"><span className="font-medium text-slate-700 dark:text-slate-300 hover:text-green-600 transition-colors">This Guy</span></a>
             <span>·</span>
             <span>The source code is available on</span>
-            <a href="https://github.com/rohittt-29" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-slate-700 hover:text-green-600 transition-colors">
+            <a href="https://github.com/rohittt-29" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300 hover:text-green-600 transition-colors">
               GitHub
             </a>
           </div>
@@ -419,7 +506,7 @@ const MainContainer = () => {
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={() => setMobileSidebarOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-80 max-w-[85%]">
-            <div className="h-full bg-white shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-out translate-x-0 will-change-transform scroll-smooth scroll-touch">
+            <div className="h-full bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-out translate-x-0 will-change-transform scroll-smooth scroll-touch">
               <Sidebar 
                 availableTypes={availableTypes}
                 activeFilter={filterType}
@@ -443,8 +530,8 @@ const MainContainer = () => {
 
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl">
-            <h2 className="text-xl font-semibold mb-4 text-slate-900">Create New Item</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-lg p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">Create New Item</h2>
             <ItemForm mode="create" onSubmit={handleCreate} onCancel={() => setShowCreate(false)} submitting={submitting} />
           </div>
         </div>
@@ -452,8 +539,8 @@ const MainContainer = () => {
 
       {editing && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl">
-            <h2 className="text-xl font-semibold mb-4 text-slate-900">Edit Item</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-lg p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">Edit Item</h2>
             <ItemForm mode="edit" initial={editing} onSubmit={handleUpdate} onCancel={() => setEditing(null)} submitting={submitting} />
           </div>
         </div>

@@ -31,7 +31,7 @@ try {
     setLoading(true)
     const res = await axios.post(BASE_URL + "/api/auth/login", {email, password},
          {withCredentials: true});
-         console.log("Login response:", res.data);
+         
          localStorage.setItem("token", res.data.token);
          localStorage.setItem("user", JSON.stringify(res.data.user));
          dispatch(setUser(res.data.user));
@@ -68,19 +68,11 @@ try {
                 {signup && (
                         <>
     <label className="label">Name</label>
-    <input type="email" className="input" placeholder="Name" 
+    <input type="text" className="input" placeholder="Name" 
     onChange={(e)=> setusername(e.target.value)} disabled={loading} />
     </>
                 )}
  
-
-
-
-
-
-
-
-  {/* <legend className="text-center text-2xl font-bold">Login</legend> */}
 
   <label className="label">Email</label>
   <input type="text" className="input" placeholder="Email" 

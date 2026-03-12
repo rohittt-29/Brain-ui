@@ -57,13 +57,13 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Title</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} required className="mt-1 w-full border rounded px-3 py-2" placeholder="Title" />
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} required className="mt-1 w-full bg-slate-50 dark:bg-slate-800 dark:text-white border dark:border-slate-600 rounded px-3 py-2" placeholder="Title" />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Type</label>
-        <select value={type} onChange={(e) => setType(e.target.value)} className="mt-1 w-full border rounded px-3 py-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
+        <select value={type} onChange={(e) => setType(e.target.value)} className="mt-1 bg-slate-50 dark:bg-slate-800 dark:text-white w-full border dark:border-slate-600 rounded px-3 py-2">
           {typeOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
@@ -72,21 +72,21 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
 
       {type === 'note' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">Content</label>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 w-full border rounded px-3 py-2" rows={4} placeholder="Write your note..." />
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
+          <textarea value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 w-full bg-slate-50 dark:bg-slate-800 dark:text-white border dark:border-slate-600 rounded px-3 py-2" rows={4} placeholder="Write your note..." />
         </div>
       )}
 
       {(type === 'link' || type === 'video') && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">URL</label>
-          <input value={url} onChange={(e) => setUrl(e.target.value)} className="mt-1 w-full border rounded px-3 py-2" placeholder="https://..." />
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">URL</label>
+          <input value={url} onChange={(e) => setUrl(e.target.value)} className="mt-1 w-full border bg-slate-50 dark:bg-slate-800 dark:text-white dark:border-slate-600 rounded px-3 py-2" placeholder="https://..." />
         </div>
       )}
 
 {type === 'document' && (
   <div>
-        <label className="block text-sm font-medium text-gray-700">Upload File</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload File</label>
     <input
       type="file"
       accept=".pdf,.doc,.docx,.txt"
@@ -96,7 +96,7 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
           setFile(selectedFile); // Store the actual file object
         }
       }}
-      className="mt-1 w-full border rounded px-3 py-2"
+      className="mt-1 w-full bg-slate-50 dark:bg-slate-800 dark:text-white border dark:border-slate-600 rounded px-3 py-2"
     />
     {file && (
       <p className="text-sm text-gray-500 mt-1">
@@ -108,11 +108,11 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Tags (comma separated)</label>
-        <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className="mt-1 w-full border rounded px-3 py-2" placeholder="work, personal, urgent" />
+        <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className="mt-1 w-full bg-slate-50 dark:bg-slate-800 dark:text-white border dark:border-slate-600 rounded px-3 py-2" placeholder="work, personal, urgent" />
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm border rounded hover:bg-gray-50">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm border dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-300">Cancel</button>
         <button type="submit" disabled={submitting} className="px-4 py-2 text-sm rounded bg-black text-white disabled:opacity-50">
           {submitting ? (mode === 'create' ? 'Creating...' : 'Saving...') : (mode === 'create' ? 'Create' : 'Save')}
         </button>
