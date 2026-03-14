@@ -370,7 +370,7 @@ const MainContainer = () => {
                   <Share2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">✨ Now You can also share your Brains!</p>
+                  <p className="font-semibold text-sm">✨ Now You can also share your Insights!</p>
                   <p className="text-green-100 text-xs mt-0.5">Hover on any card and click the share icon to send documents, links, or notes directly via WhatsApp or copy to clipboard.</p>
                 </div>
               </div>

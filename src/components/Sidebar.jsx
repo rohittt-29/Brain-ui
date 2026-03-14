@@ -40,7 +40,7 @@ const Sidebar = ({ availableTypes = [], activeFilter, onFilterChange, onSubFilte
     <div className="flex flex-col h-screen min-h-0 bg-slate-900 text-white scroll-smooth">
       {/* Header */}
       <div className="p-5 border-b border-slate-800/60 sticky top-0 z-10 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/80">
-        <h1 className="text-xl font-semibold tracking-tight text-white">Brain <span className='text-green-600'>Box</span></h1>
+        <h1 className="text-xl font-semibold tracking-tight text-white">Insight <span className='text-green-600'>Box</span></h1>
       </div>
 
       {/* Navigation - Takes up available space */}
