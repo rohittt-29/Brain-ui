@@ -1,11 +1,12 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react'
-import api from '../utils/axios'
+import { useSelector } from 'react-redux'
 
 const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { list } = useSelector((s) => s.items) || { list: [] }
 
 
   // Cleanup effect when component unmounts or section changes
@@ -21,7 +22,7 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }
 
   // Note: we explicitly toggle active state in submit/clear instead of an effect to avoid loops
 
-  const handleSubmit = useCallback(async (e) => {
+  const handleSubmit = useCallback((e) => {
     e?.preventDefault?.()
     
     // Clear everything first
@@ -41,40 +42,38 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }
 
     
     try {
-      const { data } = await api.post('/search', { 
-        query: query.trim(),
-        section: currentSection
-      });
+      const searchTerms = query.toLowerCase().trim().split(' ').filter(Boolean);
       
-      if (!data) {
-        throw new Error('Invalid response format');
+      let filtered = list || [];
+      if (currentSection && currentSection !== 'All Items') {
+        filtered = filtered.filter(i => (i.type || '').toLowerCase() === currentSection.toLowerCase());
       }
       
-      // Ensure we have an array of results
-      const searchResults = Array.isArray(data.results) ? data.results : 
-                          Array.isArray(data) ? data : [];
+      const searchResults = filtered.filter(item => {
+        const itemTags = (item.tags || []).map(t => t.toLowerCase());
+        const itemTitle = (item.title || '').toLowerCase();
+        const itemContent = (item.content || '').toLowerCase();
+        
+        return searchTerms.every(term => 
+          itemTags.some(tag => tag.includes(term)) || 
+          itemTitle.includes(term) || 
+          itemContent.includes(term)
+        );
+      });
       
-      // Results are already sorted by relevance from the backend
       setResults(searchResults)
       onResultsOrder?.(searchResults.map(r => r._id).filter(Boolean))
       onSearchActiveChange?.(searchResults.length > 0)
 
-      // Show appropriate messages based on search type and results
-      if (data.results.length === 0) {
+      if (searchResults.length === 0) {
         setError('No matches found for your search');
       }
     } catch (err) {
       console.error('Search error:', err);
-      if (err?.isAuthMissing) {
-        setError('Please login to search.');
-      } else if (err?.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError('Search failed. Please try again.');
-      }
+      setError('Search failed. Please try again.');
     }
     setLoading(false)
-  }, [hasQuery, query, currentSection, onResultsOrder, onSearchActiveChange])
+  }, [hasQuery, query, currentSection, onResultsOrder, onSearchActiveChange, list])
 
   const onKeyDown = useCallback((e) => {
     if (e.key === 'Enter') {
