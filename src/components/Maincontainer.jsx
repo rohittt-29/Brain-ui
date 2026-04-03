@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import SemanticSearch from './SemanticSearch'
 import ThemeToggle from './ThemeToggle'
 import { Share2, X } from 'lucide-react'
+import AIChatBox from './AIChatBox'
 
 const MainContainer = () => {
   const dispatch = useDispatch()
@@ -516,6 +517,9 @@ const MainContainer = () => {
           </div>
         </div>
       )}
+
+      {/* AI Chat Assistant — floating overlay */}
+      <AIChatBox />
 
       {/* Mobile Floating Create Button */}
       <button
