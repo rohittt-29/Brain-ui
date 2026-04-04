@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://brain-box-1.onrender.com'
+import { BASE_URL } from '@/utils/constant'
 
 // Typing animation hook — reveals text character by character
 function useTypingAnimation(text, speed = 18) {
@@ -167,7 +166,7 @@ export default function AIChatBox() {
     try {
       const token = localStorage.getItem('token')
       const { data } = await axios.post(
-        `${API_BASE}/api/chat/ask`,
+        `${BASE_URL}/api/chat/ask`,
         { message: text },
         {
           headers: {
