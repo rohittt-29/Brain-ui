@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://brain-box-w7mg.onrender.com'
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://brain-box-1.onrender.com'
 
 // Typing animation hook — reveals text character by character
 function useTypingAnimation(text, speed = 18) {
