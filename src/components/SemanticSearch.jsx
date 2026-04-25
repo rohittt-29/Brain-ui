@@ -1,6 +1,40 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
+// ── Fuzzy helpers ──────────────────────────────────────────────────────────
+// Levenshtein distance — counts min character edits between two strings
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// Returns true if `term` fuzzy-matches any word/substring in `text`
+// Allows up to 2 edits for terms longer than 4 chars, 1 edit for shorter
+function fuzzyMatchesText(term, text) {
+  if (!text || !term) return false;
+  // Direct substring match (fast path)
+  if (text.includes(term)) return true;
+  // Fuzzy match: slide a window the same length as `term` across `text`
+  const maxEdits = term.length > 4 ? 2 : 1;
+  const winLen = term.length;
+  for (let start = 0; start <= text.length - winLen; start++) {
+    const window = text.slice(start, start + winLen);
+    if (levenshtein(term, window) <= maxEdits) return true;
+  }
+  return false;
+}
+
 const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -27,7 +61,6 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }
     
     // Clear everything first
     setResults([])
-
     setError('')
     
     if (!hasQuery) {
@@ -40,7 +73,6 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }
     setError('')
     setResults([])
 
-    
     try {
       const searchTerms = query.toLowerCase().trim().split(' ').filter(Boolean);
       
@@ -53,11 +85,14 @@ const SemanticSearch = ({ onSearchActiveChange, onResultsOrder, currentSection }
         const itemTags = (item.tags || []).map(t => t.toLowerCase());
         const itemTitle = (item.title || '').toLowerCase();
         const itemContent = (item.content || '').toLowerCase();
+        const itemUrl = (item.url || '').toLowerCase();
         
+        // Every search term must match (fuzzy-aware) at least one field
         return searchTerms.every(term => 
-          itemTags.some(tag => tag.includes(term)) || 
-          itemTitle.includes(term) || 
-          itemContent.includes(term)
+          itemTags.some(tag => fuzzyMatchesText(term, tag)) || 
+          fuzzyMatchesText(term, itemTitle) || 
+          fuzzyMatchesText(term, itemContent) ||
+          fuzzyMatchesText(term, itemUrl)
         );
       });
       

@@ -31,7 +31,7 @@ function useTypingAnimation(text, speed = 18) {
 }
 
 // Individual message bubble
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onClearFilter }) {
   const isUser = msg.role === 'user'
   const { displayed } = useTypingAnimation(
     msg.role === 'assistant' && !msg.settled ? msg.content : null,
@@ -93,12 +93,28 @@ function MessageBubble({ msg }) {
             <span />
           </span>
         )}
+        {/* Filter indicator: shown once animation settles and sources exist */}
+        {msg.role === 'assistant' && msg.settled && msg.sourceCount > 0 && (
+          <div className="ai-filter-pill">
+            <span className="ai-filter-pill-icon">📌</span>
+            <span>Showing {msg.sourceCount} related item{msg.sourceCount !== 1 ? 's' : ''} on screen</span>
+            {onClearFilter && (
+              <button
+                className="ai-filter-pill-clear"
+                onClick={onClearFilter}
+                title="Clear filter and show all items"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-export default function AIChatBox() {
+export default function AIChatBox({ onAIFilter }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([
@@ -177,10 +193,20 @@ export default function AIChatBox() {
         }
       )
 
+      const sourceIds = (data.sources || []).map(s => s._id).filter(Boolean);
+      if (sourceIds.length > 0 && onAIFilter) {
+        onAIFilter(sourceIds);
+      }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botMsgId
-            ? { ...m, content: data.answer || 'No response received.', settled: false }
+            ? {
+                ...m,
+                content: data.answer || 'No response received.',
+                settled: false,
+                sourceIds: sourceIds,
+                sourceCount: sourceIds.length,
+              }
             : m
         )
       )
@@ -221,6 +247,13 @@ export default function AIChatBox() {
       },
     ])
     setError(null)
+    if (onAIFilter) onAIFilter(null) // Clear any active AI filter
+  }
+
+  const handleClearFilter = () => {
+    if (onAIFilter) onAIFilter(null)
+    // Remove sourceCount from all messages so the pill hides
+    setMessages(prev => prev.map(m => ({ ...m, sourceCount: 0 })))
   }
 
   return (
@@ -288,7 +321,7 @@ export default function AIChatBox() {
           {/* Messages */}
           <div className="ai-chat-messages" id="ai-chat-messages">
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} />
+              <MessageBubble key={msg.id} msg={msg} onClearFilter={handleClearFilter} />
             ))}
             <div ref={bottomRef} />
           </div>
@@ -537,6 +570,39 @@ export default function AIChatBox() {
           text-align: center; font-size: 10px; color: #334155;
           padding: 4px 12px 8px; margin: 0;
         }
+
+        /* Filter pill — shows inside bot bubble when sources exist */
+        .ai-filter-pill {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          margin-top: 8px;
+          padding: 5px 10px;
+          border-radius: 20px;
+          background: rgba(22,163,74,0.18);
+          border: 1px solid rgba(22,163,74,0.35);
+          font-size: 11px;
+          color: #4ade80;
+          animation: ai-filter-pill-in 0.3s ease;
+        }
+        @keyframes ai-filter-pill-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .ai-filter-pill-icon { font-size: 12px; flex-shrink: 0; }
+        .ai-filter-pill-clear {
+          margin-left: auto;
+          background: none;
+          border: none;
+          color: #4ade80;
+          cursor: pointer;
+          font-size: 11px;
+          padding: 0 2px;
+          line-height: 1;
+          opacity: 0.7;
+          transition: opacity 0.15s;
+        }
+        .ai-filter-pill-clear:hover { opacity: 1; }
 
         /* Mobile adjustments */
         @media (max-width: 480px) {

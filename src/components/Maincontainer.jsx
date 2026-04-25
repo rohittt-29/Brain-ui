@@ -26,6 +26,7 @@ const MainContainer = () => {
   const [pageSize, setPageSize] = useState(12)
   const [openGroups, setOpenGroups] = useState({})
   const [subFilter, setSubFilter] = useState(null) // e.g., domain for links or ext for docs
+  const [aiFilterIds, setAiFilterIds] = useState(null) // IDs returned by AI chat
 
   // Share tutorial — show once per user
   const [showShareTutorial, setShowShareTutorial] = useState(() => {
@@ -53,6 +54,14 @@ const MainContainer = () => {
     // Start with the base list
     let items = [...list];
     
+    // AI filter takes highest priority: show only the AI-identified items
+    if (aiFilterIds && aiFilterIds.length > 0) {
+      const aiSet = new Set(aiFilterIds);
+      const itemMap = new Map(items.map(i => [i._id, i]));
+      // Preserve AI result order
+      return aiFilterIds.map(id => itemMap.get(id)).filter(Boolean);
+    }
+
     // If semantic search is active, use search results order
     if (searchActive && orderedIds.length > 0) {
       const itemMap = new Map(items.map(i => [i._id, i]));
@@ -91,7 +100,7 @@ const MainContainer = () => {
     }
 
     return items;
-  }, [list, orderedIds, searchActive, filterType, subFilter]);
+  }, [list, orderedIds, searchActive, filterType, subFilter, aiFilterIds]);
 
   useEffect(() => {
     dispatch(fetchItems())
@@ -389,6 +398,23 @@ const MainContainer = () => {
             currentSection={filterType} // Pass the current section
           />
 
+          {/* AI Filter Banner */}
+          {aiFilterIds && aiFilterIds.length > 0 && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-green-600/90 to-emerald-600/90 text-white shadow-lg animate-fade-in">
+              <span className="text-base">🤖</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold leading-tight">AI filtered results</p>
+                <p className="text-xs text-green-100 leading-tight">Showing {aiFilterIds.length} item{aiFilterIds.length !== 1 ? 's' : ''} related to your question</p>
+              </div>
+              <button
+                onClick={() => setAiFilterIds(null)}
+                className="flex-shrink-0 text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-lg transition-colors font-medium"
+              >
+                Show All
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg text-sm">
               {error}
@@ -519,7 +545,7 @@ const MainContainer = () => {
       )}
 
       {/* AI Chat Assistant — floating overlay */}
-      <AIChatBox />
+      <AIChatBox onAIFilter={(ids) => setAiFilterIds(ids && ids.length > 0 ? ids : null)} />
 
       {/* Mobile Floating Create Button */}
       <button
