@@ -120,7 +120,7 @@ export default function AIChatBox({ onAIFilter }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: "Hi! I'm your InsightCart Assistant 🧠 Ask me anything about your saved notes, links, or documents!",
+      content: "Hi! I'm your InsightBox Assistant 🧠 Ask me anything about your saved notes, links, or documents!",
       settled: true,
       id: 'welcome',
     },
@@ -287,7 +287,7 @@ export default function AIChatBox({ onAIFilter }) {
             <div className="ai-chat-header-left">
               <div className="ai-header-icon">✦</div>
               <div>
-                <p className="ai-header-title">InsightCart AI</p>
+                <p className="ai-header-title">InsightBox AI</p>
                 <p className="ai-header-sub">Powered by your notes</p>
               </div>
             </div>

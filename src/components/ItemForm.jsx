@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { extractTextFromPDF } from '../utils/pdfExtractor'
 
 const typeOptions = [
   { value: 'note', label: 'Note' },
@@ -14,6 +15,7 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
   const [url, setUrl] = useState(initial?.url || '')
   const [file, setFile] = useState(null)
   const [tagsInput, setTagsInput] = useState((initial?.tags || []).join(', '))
+  const [extracting, setExtracting] = useState(false) // PDF extraction in progress
 
   // Only reset local state when switching modes or editing a different item
   useEffect(() => {
@@ -38,21 +40,37 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
 
   const tags = useMemo(() => tagsInput.split(',').map((t) => t.trim()).filter(Boolean), [tagsInput])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const payload = new FormData();
     payload.append('title', title);
     payload.append('type', type);
     payload.append('tags', tags.join(','));
-  
+
     if (type === 'note') payload.append('content', content);
     if (type === 'link' || type === 'video') payload.append('url', url);
-    if (type === 'document' && file) payload.append('pdf', file); // 👈 'pdf' matches multer field name
-  
-    onSubmit(payload); // 👈 Pass FormData to parent
+
+    if (type === 'document' && file) {
+      payload.append('pdf', file); // still send the file for Cloudinary upload
+
+      // Extract PDF text in the browser, send as a separate field
+      setExtracting(true);
+      try {
+        const pdfText = await extractTextFromPDF(file);
+        if (pdfText) {
+          payload.append('pdfContent', pdfText);
+        }
+      } catch (_) {
+        // Non-fatal — backend will still save the file without extracted text
+      } finally {
+        setExtracting(false);
+      }
+    }
+
+    onSubmit(payload);
   };
-  
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -93,7 +111,7 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
       onChange={(e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-          setFile(selectedFile); // Store the actual file object
+          setFile(selectedFile);
         }
       }}
       className="mt-1 w-full bg-slate-50 dark:bg-slate-800 dark:text-white border dark:border-slate-600 rounded px-3 py-2"
@@ -113,8 +131,8 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
 
       <div className="flex justify-end gap-2 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-sm border dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-800 dark:text-slate-300">Cancel</button>
-        <button type="submit" disabled={submitting} className="px-4 py-2 text-sm rounded bg-black text-white disabled:opacity-50">
-          {submitting ? (mode === 'create' ? 'Creating...' : 'Saving...') : (mode === 'create' ? 'Create' : 'Save')}
+        <button type="submit" disabled={submitting || extracting} className="px-4 py-2 text-sm rounded bg-black text-white disabled:opacity-50">
+          {extracting ? 'Reading PDF…' : submitting ? (mode === 'create' ? 'Creating...' : 'Saving...') : (mode === 'create' ? 'Create' : 'Save')}
         </button>
       </div>
     </form>
@@ -122,5 +140,3 @@ const ItemForm = ({ mode = 'create', initial = {}, onSubmit, onCancel, submittin
 }
 
 export default ItemForm
-
-
