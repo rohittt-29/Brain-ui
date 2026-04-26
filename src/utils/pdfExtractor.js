@@ -1,26 +1,29 @@
 /**
  * pdfExtractor.js
  * Extracts plain text from a PDF File object entirely in the browser
- * using pdfjs-dist v3 — works with Vite out of the box, no config needed.
+ * using pdfjs-dist v3 — no backend needed, no memory pressure on server.
  */
 
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 
-// Use the CDN-hosted worker — most reliable approach with Vite
-// This avoids any worker bundling/import issues entirely
+// Point to the worker file served from the Vite public directory
+// Vite will serve /node_modules via its dev server; in prod we copy the worker.
+// Using unpkg as a reliable cross-env CDN fallback.
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  `https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js`;
 
-const MAX_CHARS = 2500; // Keep in sync with backend MAX_LENGTH
+const MAX_CHARS = 2500;
 
 /**
  * @param {File} file  — The File object from <input type="file">
- * @returns {Promise<string>}  Extracted text (max MAX_CHARS chars), or '' on failure
+ * @returns {Promise<string>}  Extracted text (up to MAX_CHARS chars), or '' on failure
  */
 export async function extractTextFromPDF(file) {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const uint8 = new Uint8Array(arrayBuffer);
+
+    const loadingTask = pdfjsLib.getDocument({ data: uint8 });
     const pdf = await loadingTask.promise;
 
     let fullText = '';

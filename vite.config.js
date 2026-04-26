@@ -10,6 +10,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: ['pdfjs-dist/legacy/build/pdf'],
+  },
   server: {
     watch: {
       usePolling: true,
@@ -19,4 +22,4 @@ export default defineConfig({
     strictPort: true,
     port: 5173,
   },
-})
+})
