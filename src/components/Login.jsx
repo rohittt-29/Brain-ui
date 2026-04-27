@@ -3,12 +3,13 @@ import { setUser } from '@/utils/UserSlice';
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Mail, Lock, Sparkles, BookOpen, Search, Lightbulb, Eye, EyeOff, ShoppingCart } from 'lucide-react';
 import iconImg from '@/assets/Icon.png';
 
 const Login = () => {
-  const [signup, setSignup] = useState(false);
+  const location = useLocation();
+  const [signup, setSignup] = useState(location.pathname === '/signup');
   const [username, setusername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

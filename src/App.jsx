@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Login from './components/Login'
+import Landing from './components/Landing'
 import Maincontainer from './components/Maincontainer'
 import Home from './components/Home'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -34,7 +35,9 @@ const App = () => {
     <InitAuth />
     <BrowserRouter basename='/'>
       <Routes>
+        <Route path='/landing' element={<Landing />} />
         <Route path='/login' element={<Login />} />
+        <Route path='/signup' element={<Login />} />
         <Route path='/' element={
           <ProtectedRoute>
             <Home />
