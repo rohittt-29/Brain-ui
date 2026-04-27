@@ -55,7 +55,10 @@ const Landing = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden">
+    <div
+      className="min-h-screen bg-slate-950 text-white overflow-x-hidden"
+      style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontFeatureSettings: "'cv02', 'cv03', 'cv04', 'cv11'" }}
+    >
 
       {/* ── Ambient background glows ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -82,7 +85,7 @@ const Landing = () => {
           <div className="w-8 h-8 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center justify-center">
             <img src={iconImg} alt="InsightBox" className="w-5 h-5 object-contain" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-white">InsightBox</span>
+          <span className="text-lg font-bold tracking-tight text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>InsightBox</span>
         </div>
 
         {/* Nav links */}
@@ -121,7 +124,10 @@ const Landing = () => {
         </div>
 
         {/* Heading */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tight max-w-4xl">
+        <h1
+          className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tight max-w-4xl"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.03em' }}
+        >
           <span className="text-white">InsightBox —</span>
           <br />
           <span className="bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
@@ -217,7 +223,10 @@ const Landing = () => {
         <div className="max-w-5xl mx-auto">
           {/* Section label */}
           <p className="text-center text-green-400 text-xs font-bold uppercase tracking-widest mb-3">Features</p>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-4">
+          <h2
+            className="text-3xl md:text-4xl font-extrabold text-white text-center mb-4"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}
+          >
             Everything you need. Nothing you don't.
           </h2>
           <p className="text-center text-slate-400 text-base max-w-xl mx-auto mb-14">
@@ -266,7 +275,10 @@ const Landing = () => {
                 <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center mb-5`}>
                   {icon}
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+                <h3
+                  className="text-xl font-bold text-white mb-3"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                >{title}</h3>
                 <p className="text-slate-400 text-sm leading-relaxed mb-5">{desc}</p>
                 <ul className="space-y-2">
                   {bullets.map((b) => (
@@ -288,7 +300,10 @@ const Landing = () => {
       <section id="how-it-works" className="relative z-10 px-6 md:px-16 py-24 border-t border-slate-800/60">
         <div className="max-w-4xl mx-auto">
           <p className="text-center text-green-400 text-xs font-bold uppercase tracking-widest mb-3">How It Works</p>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-4">
+          <h2
+            className="text-3xl md:text-4xl font-extrabold text-white text-center mb-4"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}
+          >
             Three steps to a smarter brain
           </h2>
           <p className="text-center text-slate-400 text-base max-w-lg mx-auto mb-16">
@@ -334,7 +349,10 @@ const Landing = () => {
                       <span className="text-[10px] font-bold text-green-400">{step}</span>
                     </div>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
+                  <h3
+                    className="text-lg font-bold text-white mb-2"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  >{title}</h3>
                   <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
                 </div>
               ))}
@@ -358,7 +376,10 @@ const Landing = () => {
               Free to start
             </div>
 
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
+            <h2
+              className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.02em' }}
+            >
               Start building your
               <br />
               <span className="bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
